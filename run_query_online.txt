@@ -1,0 +1,71 @@
+var getheight = $(document).height();
+$("#mainbody").css("height", getheight+"px");
+
+$("#tableid").css("height","400px");
+$("td").css("height", "25%");
+
+CREATE TABLE dashboard_2018 LIKE dashboard
+CREATE TABLE mixledger_2018 LIKE mixledger
+CREATE TABLE mixledger_detail_2018 LIKE mixledger_detail
+CREATE TABLE mledger_2018 LIKE mledger
+CREATE TABLE history_2018 LIKE history
+
+
+
+//INSERT INTO table1 VALUES (SELECT * FROM table2);
+
+INSERT INTO dashboard_2018 SELECT * FROM dashboard 
+WHERE timetableid IN (SELECT timetableid FROM timetable WHERE STR_TO_DATE(tdate, '%m-%d-%Y') > STR_TO_DATE('01-01-2018', '%m-%d-%Y'));
+
+DELETE FROM dashboard 
+WHERE timetableid IN (SELECT timetableid FROM timetable WHERE STR_TO_DATE(tdate, '%m-%d-%Y') > STR_TO_DATE('01-01-2018', '%m-%d-%Y'));
+
+
+INSERT INTO history_2018 SELECT * FROM history 
+WHERE timetableid IN (SELECT timetableid FROM timetable WHERE STR_TO_DATE(tdate, '%m-%d-%Y') > STR_TO_DATE('01-01-2018', '%m-%d-%Y'));
+
+DELETE FROM history 
+WHERE timetableid IN (SELECT timetableid FROM timetable WHERE STR_TO_DATE(tdate, '%m-%d-%Y') > STR_TO_DATE('01-01-2018', '%m-%d-%Y'));
+
+
+INSERT INTO mixledger_2018 SELECT * FROM mixledger 
+WHERE mixledger_id IN (SELECT mixledger_id FROM mixledger_detail WHERE dashboard_id >= 477);
+
+DELETE FROM mixledger 
+WHERE mixledger_id IN (SELECT mixledger_id FROM mixledger_detail WHERE dashboard_id >= 477);
+
+
+INSERT INTO mixledger_detail_2018 SELECT * FROM mixledger_detail WHERE dashboard_id >= 477;
+
+DELETE FROM mixledger_detail WHERE dashboard_id >= 477;
+
+
+INSERT INTO mledger_2018 SELECT * FROM mledger WHERE dashboard_id >= 477;
+
+DELETE FROM mledger WHERE dashboard_id >= 477;
+
+rename tables
+dashboard => dashboard_2017
+history => history_2017
+mledger => mledger_2017
+mixledger => mixledger_2017
+mixledger_detail => mixledger_detail_2017
+
+UPDATE create_table SET win_lose=(SELECT IFNULL((SUM(a.result_amount)*(-1)),0) as amount 
+FROM mledger_2017 as a WHERE a.betstateid=1),
+pending=(SELECT IFNULL((SUM(a.bet_amount)),0) as amount FROM mledger_2017 as a WHERE a.betstateid=2),
+undefined=(SELECT IFNULL((SUM(a.bet_amount)),0) as amount FROM mledger_2017 as a WHERE a.betstateid=1 and a.accbgid=0) 
+WHERE table_name='mledger_2017' AND year=2017
+
+UPDATE create_table SET win_lose=(SELECT IFNULL((SUM(a.result_amount)*(-1)),0) as amount 
+FROM mixledger_2017 as a WHERE a.betstateid=1),
+pending=(SELECT IFNULL((SUM(a.bet_amount)),0) as amount FROM mixledger_2017 as a WHERE a.betstateid=2),
+undefined=(SELECT IFNULL((SUM(a.bet_amount)),0) as amount FROM mixledger_2017 as a WHERE a.betstateid=1 and a.status_id=6) 
+WHERE table_name='mixledger_2017' AND year=2017
+
+
+SELECT SUM(win_lose) AS winlose,SUM(pending) AS pen,SUM(undefined) AS undefine 
+FROM `create_table` WHERE table_name LIKE "mledger_%";
+
+SELECT SUM(win_lose) AS winlose,SUM(pending) AS pen,SUM(undefined) AS undefine 
+FROM `create_table` WHERE table_name LIKE "mixledger_%";
